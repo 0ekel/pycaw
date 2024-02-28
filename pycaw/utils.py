@@ -166,6 +166,95 @@ class AudioUtilities:
     https://stackoverflow.com/a/20982715/185510
     """
 
+    GetAllSessions_audio_sessions = [] 
+
+
+
+    @staticmethod
+    def GetAllSpeakers():
+        """
+        get all speakers from all Endpoint devices
+        """
+        devicelist = AudioUtilities.GetAllDevices()
+        speakerslist = []
+        for device in devicelist:
+            id = device.id
+            if AudioUtilities.GetEndpointDataFlow(id) == "eRender":
+                device_enumerator = comtypes.CoCreateInstance(
+                CLSID_MMDeviceEnumerator,
+                IMMDeviceEnumerator,
+                comtypes.CLSCTX_INPROC_SERVER)
+                if id is not None:
+                    speakers = device_enumerator.GetDevice(id)
+                    speakerslist.append(speakers)
+                else:
+                    speakers = device_enumerator.GetDefaultAudioEndpoint(EDataFlow.eRender.value, ERole.eMultimedia.value)
+                    speakerslist.append(speakers)
+        return speakerslist
+    
+
+    @staticmethod
+    def GetAllAudioSessionManagers():
+        """
+        get all audiosession managers from all devices
+        """
+        speakers = AudioUtilities.GetAllSpeakers()
+        if speakers is None:
+            return None
+        # win7+ only
+        mgr = []
+        for speaker in speakers:
+            o = speaker.Activate(IAudioSessionManager2._iid_, comtypes.CLSCTX_ALL, None)
+            mgr.append(o.QueryInterface(IAudioSessionManager2))
+        return mgr
+
+
+
+
+    @staticmethod
+    def GetSessionsFromAllDevices(refresh = False):
+
+        """
+        returns all sessions from all output devices
+
+        due to performace it only truely updates the sessions when refresh is True 
+        if refresh == False only saved sessions from the last refresh get returned
+        
+        make shure to refresh at programm start and if realy needed
+        """
+        
+        audio_sessions = AudioUtilities.GetAllSessions_audio_sessions
+        if refresh:
+            audio_sessions = []
+        else:
+            return audio_sessions
+        
+        print("refresh sessions")
+        manager = AudioUtilities.GetAllAudioSessionManagers()
+        if manager is None:
+            return audio_sessions
+        for mgr in manager:
+            if mgr:
+                try:
+                    sessionEnumerator = mgr.GetSessionEnumerator()
+                    count = sessionEnumerator.GetCount()
+                    for i in range(count):
+                        ctl = sessionEnumerator.GetSession(i)
+                        if ctl is None:
+                            continue
+                        ctl2 = ctl.QueryInterface(IAudioSessionControl2)
+                        if ctl2 is not None:
+                            audio_session = AudioSession(ctl2)
+                            if audio_session.Process:
+                                #print(audio_session.Process.name())
+                                pass
+                            audio_sessions.append(audio_session)
+                except Exception :
+                    pass
+                AudioUtilities.GetAllSessions_audio_sessions = audio_sessions
+        return audio_sessions
+
+
     @staticmethod
     def GetSpeakers():
         """

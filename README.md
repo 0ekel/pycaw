@@ -44,3 +44,26 @@ See more in the [examples](examples/) directory.
 ## Tests
 
 See in the [tests](tests/) directory.
+
+
+## New 
+
+you can now get sessions from all audio devices, not just from your default 
+
+for this use 
+
+```Python
+    AudioUtilities.GetSessionsFromAllDevices()
+```
+
+for this to work I also added 
+
+```Python
+    AudioUtilities.GetAllAudioSessionManagers()
+```
+and
+```Python
+    AudioUtilities.GetAllSpeakers()
+```
+
+therefor you can now controll not only the default but also all other audio cannels
